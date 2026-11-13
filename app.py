@@ -389,8 +389,7 @@ if __name__ == '__main__':
     if __name__ == '__main__':
        port = int(os.environ.get('PORT', 5000))
        app.run(host='0.0.0.0', port=port, debug=False)
-from database.db import 
-(
+from database.db import (
     init_db,
     insert_prediction,
     get_prediction_by_id,
