@@ -1,0 +1,250 @@
+{
+    "training_timestamp": "2026-11-13 08:15:54",
+    "model_name": "Logistic Regression (L-BFGS)",
+    "pipeline_architecture": "ColumnTransformer(Median Imputer + StandardScaler, Mode Imputer + OneHotEncoder) -> LogisticRegression",
+    "train_samples": 491,
+    "test_samples": 123,
+    "accuracy": 86.18,
+    "precision": 84.0,
+    "recall": 98.82,
+    "f1_score": 90.81,
+    "roc_auc": 85.26,
+    "confusion_matrix": {
+        "matrix": [
+            [
+                22,
+                16
+            ],
+            [
+                1,
+                84
+            ]
+        ],
+        "true_negatives": 22,
+        "false_positives": 16,
+        "false_negatives": 1,
+        "true_positives": 84,
+        "labels": [
+            "Rejected (0)",
+            "Approved (1)"
+        ]
+    },
+    "classification_report": {
+        "Rejected (0)": {
+            "precision": 0.9565217391304348,
+            "recall": 0.5789473684210527,
+            "f1-score": 0.7213114754098361,
+            "support": 38.0
+        },
+        "Approved (1)": {
+            "precision": 0.84,
+            "recall": 0.9882352941176471,
+            "f1-score": 0.9081081081081082,
+            "support": 85.0
+        },
+        "accuracy": 0.8617886178861789,
+        "macro avg": {
+            "precision": 0.8982608695652174,
+            "recall": 0.7835913312693499,
+            "f1-score": 0.8147097917589721,
+            "support": 123.0
+        },
+        "weighted avg": {
+            "precision": 0.8759985860728171,
+            "recall": 0.8617886178861789,
+            "f1-score": 0.850398579307016,
+            "support": 123.0
+        }
+    },
+    "feature_importance": [
+        {
+            "raw_name": "cat__Credit_History_0.0",
+            "feature": "Credit History 0.0",
+            "coefficient": -1.6989,
+            "abs_coefficient": 1.6989,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Credit_History_1.0",
+            "feature": "Credit History 1.0",
+            "coefficient": 1.6987,
+            "abs_coefficient": 1.6987,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Property_Area_Semiurban",
+            "feature": "Property Area Semiurban",
+            "coefficient": 0.4566,
+            "abs_coefficient": 0.4566,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Dependents_1",
+            "feature": "Dependents 1",
+            "coefficient": -0.372,
+            "abs_coefficient": 0.372,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Dependents_2",
+            "feature": "Dependents 2",
+            "coefficient": 0.3084,
+            "abs_coefficient": 0.3084,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Property_Area_Rural",
+            "feature": "Property Area Rural",
+            "coefficient": -0.3074,
+            "abs_coefficient": 0.3074,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Married_No",
+            "feature": "Married No",
+            "coefficient": -0.2714,
+            "abs_coefficient": 0.2714,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Married_Yes",
+            "feature": "Married Yes",
+            "coefficient": 0.2712,
+            "abs_coefficient": 0.2712,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Education_Not Graduate",
+            "feature": "Education Not Graduate",
+            "coefficient": -0.1921,
+            "abs_coefficient": 0.1921,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Education_Graduate",
+            "feature": "Education Graduate",
+            "coefficient": 0.1919,
+            "abs_coefficient": 0.1919,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Property_Area_Urban",
+            "feature": "Property Area Urban",
+            "coefficient": -0.1494,
+            "abs_coefficient": 0.1494,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "num__CoapplicantIncome",
+            "feature": "CoapplicantIncome",
+            "coefficient": -0.1473,
+            "abs_coefficient": 0.1473,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Dependents_3+",
+            "feature": "Dependents 3+",
+            "coefficient": 0.1232,
+            "abs_coefficient": 0.1232,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Self_Employed_Yes",
+            "feature": "Self Employed Yes",
+            "coefficient": -0.1041,
+            "abs_coefficient": 0.1041,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Self_Employed_No",
+            "feature": "Self Employed No",
+            "coefficient": 0.1039,
+            "abs_coefficient": 0.1039,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Gender_Male",
+            "feature": "Gender Male",
+            "coefficient": -0.0902,
+            "abs_coefficient": 0.0902,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "cat__Gender_Female",
+            "feature": "Gender Female",
+            "coefficient": 0.09,
+            "abs_coefficient": 0.09,
+            "direction": "Positive (Supports Approval)"
+        },
+        {
+            "raw_name": "cat__Dependents_0",
+            "feature": "Dependents 0",
+            "coefficient": -0.0599,
+            "abs_coefficient": 0.0599,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "num__LoanAmount",
+            "feature": "LoanAmount",
+            "coefficient": -0.0382,
+            "abs_coefficient": 0.0382,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "num__Loan_Amount_Term",
+            "feature": "Loan Amount Term",
+            "coefficient": -0.0174,
+            "abs_coefficient": 0.0174,
+            "direction": "Negative (Supports Rejection)"
+        },
+        {
+            "raw_name": "num__ApplicantIncome",
+            "feature": "ApplicantIncome",
+            "coefficient": 0.0059,
+            "abs_coefficient": 0.0059,
+            "direction": "Positive (Supports Approval)"
+        }
+    ],
+    "dataset_overview": {
+        "total_records": 614,
+        "approved_count": 422,
+        "rejected_count": 192,
+        "approval_rate": 68.73,
+        "property_counts": {
+            "Semiurban": 233,
+            "Urban": 202,
+            "Rural": 179
+        },
+        "property_approval": {
+            "Rural": 61.45,
+            "Semiurban": 76.82,
+            "Urban": 65.84
+        },
+        "credit_counts": {
+            "Good Credit (1.0)": 475,
+            "Poor Credit (0.0)": 89,
+            "Missing": 50
+        },
+        "credit_approval": {
+            "Meets Guidelines (1.0)": 79.58,
+            "Does Not Meet (0.0)": 7.87
+        },
+        "education_counts": {
+            "Graduate": 480,
+            "Not Graduate": 134
+        },
+        "education_approval": {
+            "Graduate": 70.83,
+            "Not Graduate": 61.19
+        },
+        "missing_values": {
+            "Gender": 13,
+            "Married": 3,
+            "Dependents": 15,
+            "Self_Employed": 32,
+            "LoanAmount": 22,
+            "Loan_Amount_Term": 14,
+            "Credit_History": 50
+        }
+    }
+}

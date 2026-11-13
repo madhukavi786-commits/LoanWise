@@ -1,0 +1,349 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Insights &amp; Feature Importance | LoanWise{% endblock %}
+{% block page_title %}Underwriting Insights &amp; Coefficients{% endblock %}
+{% block page_subtitle %}Interpretability, feature impact analysis, and exploratory dataset distributions{% endblock %}
+
+{% block content %}
+{% if metrics and metrics.dataset_overview %}
+
+<!-- Dataset Overview Cards -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Total Training Dataset</div>
+                <div class="stat-value">{{ metrics.dataset_overview.total_records }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Historical applicant profiles
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Historical Approvals</div>
+                <div class="stat-value text-success">{{ metrics.dataset_overview.approved_count }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                {{ metrics.dataset_overview.approval_rate }}% baseline approval rate
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Historical Rejections</div>
+                <div class="stat-value text-danger">{{ metrics.dataset_overview.rejected_count }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                {{ (100 - metrics.dataset_overview.approval_rate)|round(2) }}% rejection frequency
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Predictor Features</div>
+                <div class="stat-value text-primary">11</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Demographic, financial &amp; collateral
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Feature Importance & Coefficients Section -->
+<div class="row g-4 mb-4">
+    <!-- Chart: Feature Coefficients Horizontal Bar -->
+    <div class="col-12 col-lg-7">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-bar-chart-steps"></i> Logistic Regression Coefficients</h5>
+                <span class="badge bg-light text-secondary border">Log-Odds Weight</span>
+            </div>
+            <p class="text-muted small mb-3">
+                Positive values (green) shift the decision probability toward approval; negative values (red) increase rejection likelihood:
+            </p>
+            <div style="position: relative; height: 380px;">
+                <canvas id="coefficientsBarChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Explanatory Scientific Interpretation Card -->
+    <div class="col-12 col-lg-5">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-mortarboard-fill"></i> Model Interpretability Guide</h5>
+            </div>
+
+            <!-- Crucial requirement note: Do not claim causal relationships -->
+            <div class="alert alert-warning py-2 px-3 small mb-3 border-0 bg-warning-subtle text-dark">
+                <i class="bi bi-info-circle-fill text-warning me-1"></i>
+                <strong>Statistical Note:</strong> Logistic Regression coefficients quantify statistical associations and directional log-odds impact within the training dataset. <em>They do not establish direct causal relationships.</em>
+            </div>
+
+            <div class="d-flex flex-column gap-3">
+                <div class="p-3 bg-light rounded-3">
+                    <h6 class="fw-bold small text-success mb-1">
+                        <i class="bi bi-check-circle-fill me-1"></i> Primary Approval Drivers
+                    </h6>
+                    <p class="small text-muted mb-0">
+                        <strong>Credit History Meets Guidelines (+1.70):</strong> Unquestionably the most influential positive predictor in consumer underwriting.
+                        <br><strong>Semiurban Property (+0.46):</strong> Historically accompanied by the highest approval conversion rate.
+                        <br><strong>Married Status (+0.27):</strong> Associated with increased household stability and dual-income potential.
+                    </p>
+                </div>
+
+                <div class="p-3 bg-light rounded-3">
+                    <h6 class="fw-bold small text-danger mb-1">
+                        <i class="bi bi-x-circle-fill me-1"></i> Critical Risk Factors
+                    </h6>
+                    <p class="small text-muted mb-0">
+                        <strong>Poor Credit History (-1.70):</strong> Delinquencies or lack of verified repayment record creates immediate downward pressure on approval.
+                        <br><strong>Dependents &gt; 0 (-0.37):</strong> Heightened household expenses reduce disposable debt service capacity.
+                        <br><strong>Rural Collateral (-0.31):</strong> Appraisals in rural areas typically face liquidity constraints during collateral liquidation.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Dataset Distribution Visualizations -->
+<div class="row g-4 mb-4">
+    <!-- Credit History Distribution -->
+    <div class="col-12 col-md-4">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-award-fill"></i> Credit History vs Approval</h5>
+            </div>
+            <div style="position: relative; height: 220px;">
+                <canvas id="creditApprovalChart"></canvas>
+            </div>
+            <div class="mt-3 text-muted small text-center">
+                Approval rate: Good Credit ({{ metrics.dataset_overview.credit_approval['Meets Guidelines (1.0)'] }}%) vs Poor Credit ({{ metrics.dataset_overview.credit_approval['Does Not Meet (0.0)'] }}%)
+            </div>
+        </div>
+    </div>
+
+    <!-- Property Area Distribution -->
+    <div class="col-12 col-md-4">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-geo-alt-fill"></i> Property Area Approval %</h5>
+            </div>
+            <div style="position: relative; height: 220px;">
+                <canvas id="propertyAreaChart"></canvas>
+            </div>
+            <div class="mt-3 text-muted small text-center">
+                Semiurban: {{ metrics.dataset_overview.property_approval.Semiurban }}% &bull; Urban: {{ metrics.dataset_overview.property_approval.Urban }}% &bull; Rural: {{ metrics.dataset_overview.property_approval.Rural }}%
+            </div>
+        </div>
+    </div>
+
+    <!-- Education Level Distribution -->
+    <div class="col-12 col-md-4">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-book-half"></i> Education vs Approval %</h5>
+            </div>
+            <div style="position: relative; height: 220px;">
+                <canvas id="educationChart"></canvas>
+            </div>
+            <div class="mt-3 text-muted small text-center">
+                Graduates: {{ metrics.dataset_overview.education_approval.Graduate }}% &bull; Non-Graduates: {{ metrics.dataset_overview.education_approval['Not Graduate'] }}%
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Coefficients Table -->
+<div class="content-card">
+    <div class="card-header-clean">
+        <h5><i class="bi bi-list-columns"></i> Complete Feature Coefficients Inventory</h5>
+        <span class="badge bg-light text-secondary border">Trained Weights</span>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-custom align-middle">
+            <thead>
+                <tr>
+                    <th>Feature Dimension</th>
+                    <th>Model Weight (Coefficient)</th>
+                    <th>Magnitude</th>
+                    <th>Directional Impact</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in metrics.feature_importance %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.feature }}</strong>
+                            <small class="text-muted d-block font-monospace" style="font-size: 0.72rem;">{{ item.raw_name }}</small>
+                        </td>
+                        <td>
+                            <span class="fw-bold font-monospace {% if item.coefficient > 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "{:+.4f}".format(item.coefficient) }}
+                            </span>
+                        </td>
+                        <td>
+                            <div class="progress" style="height: 6px; width: 100px;">
+                                <div class="progress-bar {% if item.coefficient > 0 %}bg-success{% else %}bg-danger{% endif %}"
+                                     style="width: {{ [item.abs_coefficient * 55, 100]|min }}%;"></div>
+                            </div>
+                        </td>
+                        <td>
+                            {% if item.coefficient > 0 %}
+                                <span class="badge bg-success-subtle text-success"><i class="bi bi-arrow-up me-1"></i>Increases Approval Odds</span>
+                            {% else %}
+                                <span class="badge bg-danger-subtle text-danger"><i class="bi bi-arrow-down me-1"></i>Increases Rejection Odds</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if metrics and metrics.dataset_overview %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Horizontal Coefficients Chart
+    const coefCtx = document.getElementById('coefficientsBarChart');
+    if (coefCtx) {
+        const rawFeatures = {{ metrics.feature_importance|tojson }};
+        // Top 10 features by magnitude
+        const topFeatures = rawFeatures.slice(0, 10);
+        const labels = topFeatures.map(f => f.feature);
+        const values = topFeatures.map(f => f.coefficient);
+        const colors = values.map(v => v >= 0 ? '#10b981' : '#f43f5e');
+
+        new Chart(coefCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Coefficient (Log-Odds)',
+                    data: values,
+                    backgroundColor: colors,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        grid: { color: '#f1f5f9' },
+                        title: { display: true, text: 'Logistic Regression Weight (Beta)' }
+                    },
+                    y: {
+                        grid: { display: false }
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // 2. Credit History Chart
+    const creditCtx = document.getElementById('creditApprovalChart');
+    if (creditCtx) {
+        new Chart(creditCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Good Credit (1.0)', 'Poor Credit (0.0)'],
+                datasets: [{
+                    label: 'Approval %',
+                    data: [
+                        {{ metrics.dataset_overview.credit_approval['Meets Guidelines (1.0)'] }},
+                        {{ metrics.dataset_overview.credit_approval['Does Not Meet (0.0)'] }}
+                    ],
+                    backgroundColor: ['#10b981', '#f43f5e'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 3. Property Area Chart
+    const propertyCtx = document.getElementById('propertyAreaChart');
+    if (propertyCtx) {
+        new Chart(propertyCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Semiurban', 'Urban', 'Rural'],
+                datasets: [{
+                    label: 'Approval %',
+                    data: [
+                        {{ metrics.dataset_overview.property_approval.Semiurban }},
+                        {{ metrics.dataset_overview.property_approval.Urban }},
+                        {{ metrics.dataset_overview.property_approval.Rural }}
+                    ],
+                    backgroundColor: ['#38bdf8', '#2563eb', '#94a3b8'],
+                    borderRadius: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true, max: 100 }
+                },
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 4. Education Chart
+    const eduCtx = document.getElementById('educationChart');
+    if (eduCtx) {
+        new Chart(eduCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Graduate Approval %', 'Non-Graduate Approval %'],
+                datasets: [{
+                    data: [
+                        {{ metrics.dataset_overview.education_approval.Graduate }},
+                        {{ metrics.dataset_overview.education_approval['Not Graduate'] }}
+                    ],
+                    backgroundColor: ['#2563eb', '#cbd5e1'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 10 } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+

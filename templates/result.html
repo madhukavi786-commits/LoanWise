@@ -1,0 +1,207 @@
+{% extends 'base.html' %}
+
+{% block title %}Prediction Result #{{ record.application_id }} | LoanWise{% endblock %}
+{% block page_title %}Evaluation Result: {{ record.application_id }}{% endblock %}
+{% block page_subtitle %}Automated underwriting recommendation &amp; feature attribution breakdown{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-12 col-xl-10">
+
+        <!-- Result Hero Banner -->
+        <div class="result-hero {% if record.prediction == 1 %}approved{% else %}rejected{% endif %}">
+            <div class="result-icon-large">
+                {% if record.prediction == 1 %}
+                    <i class="bi bi-shield-check"></i>
+                {% else %}
+                    <i class="bi bi-shield-x"></i>
+                {% endif %}
+            </div>
+
+            <div class="result-title">
+                {% if record.prediction == 1 %}
+                    LOAN APPLICATION APPROVED
+                {% else %}
+                    LOAN APPLICATION REJECTED
+                {% endif %}
+            </div>
+
+            <p class="mb-2 opacity-90" style="max-width: 650px; margin: 0 auto; font-size: 1.05rem;">
+                {% if record.prediction == 1 %}
+                    The statistical underwriting model indicates a high probability of favorable loan repayment under current credit guidelines.
+                {% else %}
+                    The application exhibits risk indicators exceeding the acceptable underwriting risk threshold.
+                {% endif %}
+            </p>
+
+            <div class="result-probability-badge">
+                <i class="bi bi-graph-up me-1"></i>
+                Approval Confidence Probability: <strong>{{ (record.probability * 100)|round(1) }}%</strong>
+            </div>
+
+            <div class="mt-2">
+                <span class="badge bg-light text-dark fw-bold px-3 py-1">
+                    Risk Classification: {{ record.risk_level }}
+                </span>
+            </div>
+        </div>
+
+        <!-- Quick Action Nav -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+            <div>
+                <a href="{{ url_for('history') }}" class="btn btn-secondary-custom btn-sm">
+                    <i class="bi bi-arrow-left"></i>
+                    <span>Back to History</span>
+                </a>
+            </div>
+            <div class="d-flex gap-2">
+                <button onclick="window.print()" class="btn btn-secondary-custom btn-sm">
+                    <i class="bi bi-printer"></i>
+                    <span>Print Report</span>
+                </button>
+                <a href="{{ url_for('predict') }}" class="btn btn-primary-custom btn-sm">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Evaluate Another Customer</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <!-- Submitted Customer Parameters Card -->
+            <div class="col-12 col-lg-6">
+                <div class="content-card h-100">
+                    <div class="card-header-clean">
+                        <h5><i class="bi bi-person-lines-fill"></i> Submitted Application Data</h5>
+                        <span class="badge bg-light text-secondary border font-monospace">{{ record.application_id }}</span>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm table-borderless align-middle mb-0">
+                            <tbody>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2" style="width: 45%;">Applicant Name</td>
+                                    <td class="fw-bold py-2">{{ record.applicant_name }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Gender &amp; Marital Status</td>
+                                    <td class="fw-semibold py-2">{{ record.gender }} &bull; {{ 'Married' if record.married == 'Yes' else 'Unmarried' }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Dependents</td>
+                                    <td class="fw-semibold py-2">{{ record.dependents }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Education &amp; Employment</td>
+                                    <td class="fw-semibold py-2">{{ record.education }} &bull; {{ 'Self-Employed' if record.self_employed == 'Yes' else 'Salaried' }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Applicant Monthly Income</td>
+                                    <td class="fw-bold text-success py-2">${{ "{:,.2f}".format(record.applicant_income) }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Co-applicant Monthly Income</td>
+                                    <td class="fw-semibold py-2">${{ "{:,.2f}".format(record.coapplicant_income) }}</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Requested Loan Amount</td>
+                                    <td class="fw-bold text-primary py-2">${{ "{:,.0f}".format(record.loan_amount) }},000</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Loan Term Duration</td>
+                                    <td class="fw-semibold py-2">{{ "{:.0f}".format(record.loan_amount_term) }} Months ({{ (record.loan_amount_term / 12)|round(1) }} Years)</td>
+                                </tr>
+                                <tr class="border-bottom">
+                                    <td class="text-muted py-2">Credit Bureau History</td>
+                                    <td class="py-2">
+                                        {% if record.credit_history == 1.0 %}
+                                            <span class="badge-credit-good"><i class="bi bi-check-circle-fill me-1"></i>Meets Guidelines</span>
+                                        {% else %}
+                                            <span class="badge-credit-bad"><i class="bi bi-x-circle-fill me-1"></i>Does Not Meet</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="text-muted py-2">Property Zoning</td>
+                                    <td class="fw-semibold py-2">{{ record.property_area }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contributing Model Factors (Explainable AI) -->
+            <div class="col-12 col-lg-6">
+                <div class="content-card h-100">
+                    <div class="card-header-clean">
+                        <h5><i class="bi bi-sliders"></i> Important Model Contributing Features</h5>
+                        <span class="badge bg-info-subtle text-info border">XAI Attribution</span>
+                    </div>
+
+                    <p class="text-muted small mb-3">
+                        Feature contribution breakdown highlights key input dimensions that shifted the Logistic Regression score boundary toward approval or rejection:
+                    </p>
+
+                    <!-- Positive Factors -->
+                    <h6 class="fw-bold text-success small text-uppercase mb-2">
+                        <i class="bi bi-arrow-up-circle-fill me-1"></i> Factors Supporting Approval
+                    </h6>
+                    {% if contributions.top_positive %}
+                        <ul class="list-group list-group-flush mb-4">
+                            {% for factor in contributions.top_positive %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                                    <div>
+                                        <div class="fw-semibold small">{{ factor.feature }}</div>
+                                        <div class="text-muted" style="font-size: 0.74rem;">Feature weight: {{ factor.weight }}</div>
+                                    </div>
+                                    <span class="badge bg-success-subtle text-success fw-bold font-monospace">
+                                        +{{ factor.impact }}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted small ps-2 mb-3">No strong positive factors detected for this application.</p>
+                    {% endif %}
+
+                    <!-- Negative Factors -->
+                    <h6 class="fw-bold text-danger small text-uppercase mb-2">
+                        <i class="bi bi-arrow-down-circle-fill me-1"></i> Factors Increasing Risk
+                    </h6>
+                    {% if contributions.top_negative %}
+                        <ul class="list-group list-group-flush mb-2">
+                            {% for factor in contributions.top_negative %}
+                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2 border-bottom">
+                                    <div>
+                                        <div class="fw-semibold small">{{ factor.feature }}</div>
+                                        <div class="text-muted" style="font-size: 0.74rem;">Feature weight: {{ factor.weight }}</div>
+                                    </div>
+                                    <span class="badge bg-danger-subtle text-danger fw-bold font-monospace">
+                                        {{ factor.impact }}
+                                    </span>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% else %}
+                        <p class="text-muted small ps-2 mb-2">No significant negative risk factors identified.</p>
+                    {% endif %}
+
+                </div>
+            </div>
+        </div>
+
+        <!-- Mandatory ML Advisory Disclaimer -->
+        <div class="disclaimer-card">
+            <i class="bi bi-shield-exclamation text-warning fs-4 mt-1"></i>
+            <div>
+                <strong>Advisory Machine Learning Disclaimer:</strong>
+                <div>
+                    This result is a machine learning prediction generated by a trained Logistic Regression model for screening and risk evaluation purposes only. It does not constitute a legally binding underwriting commitment or actual bank loan decision. Institutional approval requires comprehensive manual verification of credit bureau disclosures, debt-to-income limits, and authentic income documentation.
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+

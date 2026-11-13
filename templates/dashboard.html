@@ -1,0 +1,329 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard | LoanWise Predictive Underwriting{% endblock %}
+{% block page_title %}Underwriting Dashboard{% endblock %}
+{% block page_subtitle %}Real-time portfolio metrics, approval rates, and application logs{% endblock %}
+
+{% block content %}
+<!-- Metrics Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Total Applications</div>
+                    <div class="stat-value">{{ stats.total_applications }}</div>
+                </div>
+                <div class="stat-icon primary">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-muted small">
+                <i class="bi bi-database me-1"></i> Recorded in system database
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Approved Loans</div>
+                    <div class="stat-value text-success">{{ stats.total_approved }}</div>
+                </div>
+                <div class="stat-icon success">
+                    <i class="bi bi-check2-circle"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-muted small">
+                <span class="badge bg-success-subtle text-success">Approved status</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Rejected Loans</div>
+                    <div class="stat-value text-danger">{{ stats.total_rejected }}</div>
+                </div>
+                <div class="stat-icon danger">
+                    <i class="bi bi-x-circle"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-muted small">
+                <span class="badge bg-danger-subtle text-danger">High-risk threshold</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="stat-card">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="stat-label">Approval Rate</div>
+                    <div class="stat-value text-primary">{{ stats.approval_rate }}%</div>
+                </div>
+                <div class="stat-icon primary">
+                    <i class="bi bi-pie-chart"></i>
+                </div>
+            </div>
+            <div class="mt-3 text-muted small">
+                {% if stats.total_applications > 0 %}
+                    Based on {{ stats.total_applications }} customer submissions
+                {% else %}
+                    No submissions recorded yet
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Section -->
+<div class="row g-4 mb-4">
+    <!-- Doughnut Chart -->
+    <div class="col-12 col-lg-5">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-pie-chart-fill"></i> Approval vs Rejection Ratio</h5>
+            </div>
+            {% if stats.total_applications > 0 %}
+                <div style="position: relative; height: 260px;">
+                    <canvas id="approvalDoughnutChart"></canvas>
+                </div>
+                <div class="d-flex justify-content-center gap-4 mt-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="width: 12px; height: 12px; background-color: #10b981; border-radius: 3px; display: inline-block;"></span>
+                        <span class="small fw-semibold text-secondary">Approved ({{ stats.total_approved }})</span>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span style="width: 12px; height: 12px; background-color: #f43f5e; border-radius: 3px; display: inline-block;"></span>
+                        <span class="small fw-semibold text-secondary">Rejected ({{ stats.total_rejected }})</span>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty-state-box py-5">
+                    <i class="bi bi-pie-chart text-muted opacity-50"></i>
+                    <h6>No Ratio Data Available</h6>
+                    <p class="text-muted small">Process applications to view loan distribution.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Application Activity Chart -->
+    <div class="col-12 col-lg-7">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-bar-chart-line-fill"></i> Application Activity Trend</h5>
+                <span class="badge bg-light text-secondary border">Recent Submissions</span>
+            </div>
+            {% if stats.total_applications > 0 %}
+                <div style="position: relative; height: 270px;">
+                    <canvas id="activityBarChart"></canvas>
+                </div>
+            {% else %}
+                <div class="empty-state-box py-5">
+                    <i class="bi bi-graph-up text-muted opacity-50"></i>
+                    <h6>No Activity Recorded Yet</h6>
+                    <p class="text-muted small">Application submission timelines will be tracked and charted here.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Recent Predictions Table -->
+<div class="content-card">
+    <div class="card-header-clean">
+        <h5><i class="bi bi-clock-history"></i> Recent Loan Applications</h5>
+        <div class="d-flex gap-2">
+            {% if stats.total_applications == 0 %}
+                <form action="{{ url_for('seed_demo_data') }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-outline-primary btn-sm">
+                        <i class="bi bi-magic me-1"></i> Seed Demo Data
+                    </button>
+                </form>
+            {% endif %}
+            <a href="{{ url_for('history') }}" class="btn btn-secondary-custom btn-sm">
+                <span>View All History</span>
+                <i class="bi bi-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    {% if stats.recent_predictions and stats.recent_predictions|length > 0 %}
+        <div class="table-responsive">
+            <table class="table table-custom">
+                <thead>
+                    <tr>
+                        <th>Application ID</th>
+                        <th>Applicant</th>
+                        <th>Income ($)</th>
+                        <th>Loan ($K)</th>
+                        <th>Credit History</th>
+                        <th>Property Area</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in stats.recent_predictions %}
+                        <tr>
+                            <td>
+                                <strong class="text-primary font-monospace">{{ p.application_id }}</strong>
+                            </td>
+                            <td>
+                                <div class="fw-semibold">{{ p.applicant_name }}</div>
+                                <small class="text-muted">{{ p.gender }}, {{ p.education }}</small>
+                            </td>
+                            <td>
+                                <div>${{ "{:,.0f}".format(p.applicant_income) }}</div>
+                                {% if p.coapplicant_income > 0 %}
+                                    <small class="text-muted">+${{ "{:,.0f}".format(p.coapplicant_income) }} co-app</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="fw-semibold">${{ "{:,.0f}".format(p.loan_amount) }}k</span>
+                                <small class="text-muted d-block">{{ "{:.0f}".format(p.loan_amount_term) }} mo</small>
+                            </td>
+                            <td>
+                                {% if p.credit_history == 1.0 %}
+                                    <span class="badge-credit-good"><i class="bi bi-check-circle-fill me-1"></i>Meets Guidelines</span>
+                                {% else %}
+                                    <span class="badge-credit-bad"><i class="bi bi-x-circle-fill me-1"></i>Unfavorable</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ p.property_area }}</td>
+                            <td>
+                                {% if p.prediction == 1 %}
+                                    <span class="badge-approved"><i class="bi bi-check-circle-fill"></i> Approved</span>
+                                {% else %}
+                                    <span class="badge-rejected"><i class="bi bi-x-circle-fill"></i> Rejected</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small fw-semibold">{{ (p.probability * 100)|round(1) }}%</span>
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                        <div class="progress-bar {% if p.prediction == 1 %}bg-success{% else %}bg-danger{% endif %}"
+                                             style="width: {{ (p.probability * 100)|round }}%;"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('prediction_result', application_id=p.application_id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="View Full Report">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <!-- Empty State When Zero Records Exist -->
+        <div class="empty-state-box">
+            <i class="bi bi-inbox"></i>
+            <h5>No Loan Applications Processed Yet</h5>
+            <p>
+                The system database is currently empty. Run your first customer prediction or seed demonstration records to explore interactive charts and insights.
+            </p>
+            <div class="d-flex justify-content-center gap-2">
+                <a href="{{ url_for('predict') }}" class="btn btn-primary-custom">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>Run First Prediction</span>
+                </a>
+                <form action="{{ url_for('seed_demo_data') }}" method="POST" style="display: inline;">
+                    <button type="submit" class="btn btn-secondary-custom">
+                        <i class="bi bi-magic"></i>
+                        <span>Populate Demo Profiles</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if stats.total_applications > 0 %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Doughnut Chart
+    const doughnutCtx = document.getElementById('approvalDoughnutChart');
+    if (doughnutCtx) {
+        new Chart(doughnutCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Approved', 'Rejected'],
+                datasets: [{
+                    data: [{{ stats.total_approved }}, {{ stats.total_rejected }}],
+                    backgroundColor: ['#10b981', '#f43f5e'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    // Activity Bar Chart
+    const activityCtx = document.getElementById('activityBarChart');
+    if (activityCtx) {
+        const dates = {{ stats.activity_data.dates|tojson }};
+        const approvedData = {{ stats.activity_data.approved|tojson }};
+        const rejectedData = {{ stats.activity_data.rejected|tojson }};
+
+        new Chart(activityCtx, {
+            type: 'bar',
+            data: {
+                labels: dates.length > 0 ? dates : ['Today'],
+                datasets: [
+                    {
+                        label: 'Approved',
+                        data: approvedData.length > 0 ? approvedData : [{{ stats.total_approved }}],
+                        backgroundColor: '#10b981',
+                        borderRadius: 6
+                    },
+                    {
+                        label: 'Rejected',
+                        data: rejectedData.length > 0 ? rejectedData : [{{ stats.total_rejected }}],
+                        backgroundColor: '#f43f5e',
+                        borderRadius: 6
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1 }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { boxWidth: 12, font: { weight: '600' } }
+                    }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+
