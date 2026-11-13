@@ -1,0 +1,312 @@
+{% extends 'base.html' %}
+
+{% block title %}Risk Analytics Dashboard | LoanWise{% endblock %}
+{% block page_title %}Risk Analytics &amp; Portfolio Intelligence{% endblock %}
+{% block page_subtitle %}Comprehensive statistical breakdowns, risk tiers, and applicant demographic distributions{% endblock %}
+
+{% block content %}
+<!-- Top Level KPI Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-12 col-sm-6 col-xl-2dot4 col-lg-4">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Total Applications</div>
+                <div class="stat-value text-dark">{{ stats.total_applications }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Stored in audit database
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-2dot4 col-lg-4">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Predicted Approvals</div>
+                <div class="stat-value text-success">{{ stats.total_approved }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                {{ stats.approval_rate }}% overall conversion
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-2dot4 col-lg-4">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Predicted Rejections</div>
+                <div class="stat-value text-danger">{{ stats.total_rejected }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                {{ (100 - stats.approval_rate)|round(1) }}% risk threshold flag
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-2dot4 col-lg-6">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Avg Loan Request</div>
+                <div class="stat-value text-primary">${{ "{:,.1f}".format(stats.average_loan) }}k</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Average requested principal
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-2dot4 col-lg-6">
+        <div class="stat-card">
+            <div>
+                <div class="stat-label">Avg Monthly Income</div>
+                <div class="stat-value text-dark">${{ "{:,.0f}".format(stats.average_income) }}</div>
+            </div>
+            <div class="mt-2 text-muted small">
+                Primary applicant earnings
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Important Methodological Banner -->
+<div class="alert alert-info d-flex align-items-center gap-2 mb-4 py-2 border-0 bg-info-subtle text-dark small" role="alert">
+    <i class="bi bi-info-circle-fill text-info fs-5"></i>
+    <div>
+        <strong>Methodological Notice:</strong> Risk distributions displayed on this dashboard represent <b>predicted underwriting risk</b> estimated by the trained Machine Learning classification model prior to loan sanctioning. They are distinct from post-disbursal repayment performance or realized loan default tracking.
+    </div>
+</div>
+
+{% if stats.total_applications > 0 %}
+<div class="row g-4 mb-4">
+    <!-- Chart 1: Risk Category Tier Distribution -->
+    <div class="col-12 col-lg-6">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-shield-shaded"></i> Underwriting Risk Category Distribution</h5>
+                <span class="badge bg-light text-secondary border">Model Classification</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="riskTierChart"></canvas>
+            </div>
+            <div class="d-flex justify-content-center gap-3 mt-3 small text-muted">
+                <span><i class="bi bi-square-fill text-success me-1"></i>Low: {{ stats.risk_distribution['Low Risk'] }}</span>
+                <span><i class="bi bi-square-fill text-warning me-1"></i>Moderate: {{ stats.risk_distribution['Moderate Risk'] }}</span>
+                <span><i class="bi bi-square-fill text-danger me-1"></i>High: {{ stats.risk_distribution['High Risk'] }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Income Distribution & Approval Ratio -->
+    <div class="col-12 col-lg-6">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-bar-chart-fill"></i> Income Bracket vs. Approval Volume</h5>
+                <span class="badge bg-light text-secondary border">Applicant Income</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="incomeBracketChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Credit History vs. Underwriting Result -->
+    <div class="col-12 col-lg-6">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-award-fill"></i> Credit History Distribution &amp; Outcomes</h5>
+                <span class="badge bg-light text-secondary border">Bureau Guidelines</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="creditHistoryOutcomeChart"></canvas>
+            </div>
+            <div class="mt-2 text-center small text-muted">
+                Shows approval counts for applicants with good credit (1.0) vs. adverse credit (0.0).
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 4: Requested Loan Amount Brackets -->
+    <div class="col-12 col-lg-6">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-cash-stack"></i> Loan Request Distribution by Size</h5>
+                <span class="badge bg-light text-secondary border">Principal Brackets</span>
+            </div>
+            <div style="position: relative; height: 260px;">
+                <canvas id="loanBracketsChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="content-card">
+    <div class="empty-state-box">
+        <i class="bi bi-graph-down text-muted"></i>
+        <h5>No Portfolio Analytics Data Available</h5>
+        <p>No loan applications have been submitted to generate portfolio risk distributions. Run predictions or populate demo records to activate analytics.</p>
+        <div class="d-flex justify-content-center gap-2">
+            <a href="{{ url_for('predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-plus-lg"></i>
+                <span>Submit First Application</span>
+            </a>
+            <form action="{{ url_for('seed_demo_data') }}" method="POST" style="display:inline;">
+                <button type="submit" class="btn btn-secondary-custom">
+                    <i class="bi bi-magic"></i>
+                    <span>Seed Demo Records</span>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if stats.total_applications > 0 %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. Risk Tier Doughnut
+    const riskCtx = document.getElementById('riskTierChart');
+    if (riskCtx) {
+        new Chart(riskCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Low Risk (Prime)', 'Moderate Risk (Borderline)', 'High Risk (Unfavorable)'],
+                datasets: [{
+                    data: [
+                        {{ stats.risk_distribution['Low Risk'] }},
+                        {{ stats.risk_distribution['Moderate Risk'] }},
+                        {{ stats.risk_distribution['High Risk'] }}
+                    ],
+                    backgroundColor: ['#16A34A', '#F59E0B', '#DC2626'],
+                    borderWidth: 0,
+                    hoverOffset: 6
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '68%',
+                plugins: { legend: { display: false } }
+            }
+        });
+    }
+
+    // 2. Income Brackets Bar
+    const incomeCtx = document.getElementById('incomeBracketChart');
+    if (incomeCtx) {
+        const incomeLabels = {{ stats.income_brackets.keys()|list|tojson }};
+        const totalIncData = [{% for k, v in stats.income_brackets.items() %}{{ v.total }},{% endfor %}];
+        const apprIncData = [{% for k, v in stats.income_brackets.items() %}{{ v.approved }},{% endfor %}];
+
+        new Chart(incomeCtx, {
+            type: 'bar',
+            data: {
+                labels: incomeLabels,
+                datasets: [
+                    {
+                        label: 'Total Submissions',
+                        data: totalIncData,
+                        backgroundColor: '#E2E8F0',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Approved Applications',
+                        data: apprIncData,
+                        backgroundColor: '#2563EB',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 3. Credit History Breakdown
+    const creditCtx = document.getElementById('creditHistoryOutcomeChart');
+    if (creditCtx) {
+        new Chart(creditCtx, {
+            type: 'bar',
+            data: {
+                labels: ['Good Credit (1.0)', 'Poor Credit (0.0)'],
+                datasets: [
+                    {
+                        label: 'Approved',
+                        data: [
+                            {{ stats.credit_stats['Good Credit (1.0)'].approved }},
+                            {{ stats.credit_stats['Poor Credit (0.0)'].approved }}
+                        ],
+                        backgroundColor: '#16A34A',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Rejected',
+                        data: [
+                            {{ stats.credit_stats['Good Credit (1.0)'].rejected }},
+                            {{ stats.credit_stats['Poor Credit (0.0)'].rejected }}
+                        ],
+                        backgroundColor: '#DC2626',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+
+    // 4. Loan Brackets Bar
+    const loanCtx = document.getElementById('loanBracketsChart');
+    if (loanCtx) {
+        const loanLabels = {{ stats.loan_brackets.keys()|list|tojson }};
+        const totalLoanData = [{% for k, v in stats.loan_brackets.items() %}{{ v.total }},{% endfor %}];
+        const apprLoanData = [{% for k, v in stats.loan_brackets.items() %}{{ v.approved }},{% endfor %}];
+
+        new Chart(loanCtx, {
+            type: 'bar',
+            data: {
+                labels: loanLabels,
+                datasets: [
+                    {
+                        label: 'Total Requests',
+                        data: totalLoanData,
+                        backgroundColor: '#CBD5E1',
+                        borderRadius: 4
+                    },
+                    {
+                        label: 'Approved Requests',
+                        data: '#16A34A',
+                        data: apprLoanData,
+                        backgroundColor: '#16A34A',
+                        borderRadius: 4
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { beginAtZero: true, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
+});
+</script>
+{% endif %}
+{% endblock %}
+

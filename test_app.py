@@ -182,6 +182,113 @@ class LoanWiseTestSuite(unittest.TestCase):
         records = get_all_predictions()
         self.assertEqual(len(records), 4)
 
+    def test_11_user_registration_and_login(self):
+        """Tests user registration, session establishment, and logout."""
+        # 1. Register new customer
+        reg_payload = {
+            'full_name': 'Diana Prince',
+            'username': 'diana',
+            'email': 'diana@themyscira.com',
+            'password': 'Password@123',
+            'confirm_password': 'Password@123',
+            'role': 'customer'
+        }
+        res_reg = self.client.post('/register', data=reg_payload, follow_redirects=True)
+        self.assertEqual(res_reg.status_code, 200)
+        self.assertIn(b'Account created successfully', res_reg.data)
+
+        # 2. Logout
+        res_logout = self.client.get('/logout', follow_redirects=True)
+        self.assertEqual(res_logout.status_code, 200)
+        self.assertIn(b'You have been signed out successfully', res_logout.data)
+
+        # 3. Login
+        login_payload = {
+            'username_or_email': 'diana@themyscira.com',
+            'password': 'Password@123'
+        }
+        res_login = self.client.post('/login', data=login_payload, follow_redirects=True)
+        self.assertEqual(res_login.status_code, 200)
+        self.assertIn(b'Welcome back, Diana Prince!', res_login.data)
+
+    def test_12_emi_calculator_and_api(self):
+        """Tests EMI calculator route and calculation API."""
+        # Page render
+        res_page = self.client.get('/emi-calculator')
+        self.assertEqual(res_page.status_code, 200)
+        self.assertIn(b'EMI &amp; Eligibility Calculator', res_page.data)
+
+        # API endpoint
+        api_payload = {
+            'principal': 100000,
+            'annual_rate': 10.0,
+            'tenure_months': 120
+        }
+        res_api = self.client.post('/api/calculate-emi', json=api_payload)
+        self.assertEqual(res_api.status_code, 200)
+        data = res_api.get_json()
+        self.assertIn('emi', data)
+        self.assertGreater(data['emi'], 1000)
+        self.assertIn('total_interest', data)
+
+    def test_13_pdf_report_download(self):
+        """Tests downloading official PDF loan report."""
+        # Submit an application
+        self.client.post('/predict', data={
+            'applicant_name': 'Bruce Wayne',
+            'gender': 'Male',
+            'married': 'No',
+            'dependents': '0',
+            'education': 'Graduate',
+            'self_employed': 'Yes',
+            'applicant_income': '12000',
+            'coapplicant_income': '0',
+            'loan_amount': '300',
+            'loan_amount_term': '360',
+            'credit_history': '1.0',
+            'property_area': 'Urban'
+        }, follow_redirects=True)
+
+        records = get_all_predictions()
+        self.assertGreater(len(records), 0)
+        app_id = records[0]['application_id']
+
+        # Download report
+        res_pdf = self.client.get(f'/report/{app_id}/download')
+        self.assertEqual(res_pdf.status_code, 200)
+        self.assertEqual(res_pdf.mimetype, 'application/pdf')
+        self.assertIn(f'attachment;filename=LoanWise_Report_{app_id}.pdf', res_pdf.headers.get('Content-Disposition', ''))
+        self.assertGreater(len(res_pdf.data), 1000)
+
+    def test_14_risk_analytics_dashboard(self):
+        """Tests Risk Analytics page rendering and metrics."""
+        res_analytics = self.client.get('/analytics')
+        self.assertEqual(res_analytics.status_code, 200)
+        self.assertIn(b'Risk Analytics &amp; Portfolio Intelligence', res_analytics.data)
+        self.assertIn(b'Methodological Notice', res_analytics.data)
+
+    def test_15_underwriting_suggestions_and_strengths(self):
+        """Tests that result view provides XAI factor attribution and improvement suggestions."""
+        res = self.client.post('/predict', data={
+            'applicant_name': 'Barry Allen',
+            'gender': 'Male',
+            'married': 'No',
+            'dependents': '0',
+            'education': 'Graduate',
+            'self_employed': 'No',
+            'applicant_income': '4500',
+            'coapplicant_income': '0',
+            'loan_amount': '110',
+            'loan_amount_term': '360',
+            'credit_history': '1.0',
+            'property_area': 'Semiurban'
+        }, follow_redirects=True)
+
+        self.assertEqual(res.status_code, 200)
+        self.assertIn(b'Explainable AI (XAI)', res.data)
+        self.assertIn(b'Actionable Loan Improvement Suggestions', res.data)
+        self.assertIn(b'Download Official PDF Report', res.data)
+
 
 if __name__ == '__main__':
     unittest.main()

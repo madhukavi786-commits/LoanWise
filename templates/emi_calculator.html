@@ -1,0 +1,250 @@
+{% extends 'base.html' %}
+
+{% block title %}EMI &amp; Loan Eligibility Calculator | LoanWise{% endblock %}
+{% block page_title %}EMI &amp; Eligibility Calculator{% endblock %}
+{% block page_subtitle %}Plan monthly installments, interest burden, and maximum borrowing capacity{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- EMI Calculator Input Form Left -->
+    <div class="col-12 col-lg-7">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-calculator-fill"></i> Loan EMI Simulation</h5>
+                <span class="badge bg-primary-subtle text-primary border">Interactive Modeling</span>
+            </div>
+
+            <form id="emiForm" onsubmit="event.preventDefault(); runEmiCalculation();">
+                <div class="mb-3">
+                    <label for="emiPrincipal" class="form-label form-label-custom d-flex justify-content-between">
+                        <span>Loan Principal Amount ($) <span class="text-danger">*</span></span>
+                        <span class="text-primary fw-bold" id="principalDisplay">$150,000</span>
+                    </label>
+                    <div class="input-group mb-2">
+                        <span class="input-group-text bg-light border-end-0 text-muted">$</span>
+                        <input type="number" class="form-control form-control-custom border-start-0" id="emiPrincipal"
+                               value="150000" min="1000" max="5000000" step="1000" oninput="document.getElementById('principalDisplay').textContent = '$' + Number(this.value).toLocaleString(); runEmiCalculation();" required>
+                    </div>
+                    <input type="range" class="form-range" id="principalRange" min="10000" max="1000000" step="5000" value="150000"
+                           oninput="document.getElementById('emiPrincipal').value = this.value; document.getElementById('principalDisplay').textContent = '$' + Number(this.value).toLocaleString(); runEmiCalculation();">
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-sm-6">
+                        <label for="emiRate" class="form-label form-label-custom d-flex justify-content-between">
+                            <span>Annual Interest Rate (%) <span class="text-danger">*</span></span>
+                            <span class="text-primary fw-bold" id="rateDisplay">9.5%</span>
+                        </label>
+                        <div class="input-group mb-2">
+                            <input type="number" class="form-control form-control-custom border-end-0" id="emiRate"
+                                   value="9.5" min="1" max="30" step="0.1" oninput="document.getElementById('rateDisplay').textContent = this.value + '%'; runEmiCalculation();" required>
+                            <span class="input-group-text bg-light border-start-0 text-muted">%</span>
+                        </div>
+                        <input type="range" class="form-range" id="rateRange" min="3" max="20" step="0.25" value="9.5"
+                               oninput="document.getElementById('emiRate').value = this.value; document.getElementById('rateDisplay').textContent = this.value + '%'; runEmiCalculation();">
+                    </div>
+
+                    <div class="col-12 col-sm-6">
+                        <label for="emiTenureMonths" class="form-label form-label-custom d-flex justify-content-between">
+                            <span>Tenure (Months) <span class="text-danger">*</span></span>
+                            <span class="text-primary fw-bold" id="tenureDisplay">360 Mo (30 Yrs)</span>
+                        </label>
+                        <select class="form-select form-select-custom mb-2" id="emiTenureMonths" onchange="updateTenureDisplay(this.value); runEmiCalculation();" required>
+                            <option value="60">60 Months (5 Years)</option>
+                            <option value="120">120 Months (10 Years)</option>
+                            <option value="180">180 Months (15 Years)</option>
+                            <option value="240">240 Months (20 Years)</option>
+                            <option value="360" selected>360 Months (30 Years Standard)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+                    <span class="text-muted small">Real-time amortization recalculation</span>
+                    <a href="{{ url_for('predict') }}" class="btn btn-primary-custom btn-sm">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Apply for This Loan</span>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- EMI Visual Breakdown Right -->
+    <div class="col-12 col-lg-5">
+        <div class="content-card h-100">
+            <div class="card-header-clean">
+                <h5><i class="bi bi-pie-chart-fill"></i> Repayment Breakdown</h5>
+                <span class="badge bg-success-subtle text-success border">Formula: P &times; r &times; (1+r)^n / ((1+r)^n - 1)</span>
+            </div>
+
+            <!-- KPI Summary Cards -->
+            <div class="p-3 bg-light rounded-3 mb-3 border">
+                <div class="row g-2 text-center">
+                    <div class="col-12">
+                        <div class="small text-muted text-uppercase fw-bold" style="font-size: 0.74rem;">Monthly Installment (EMI)</div>
+                        <div class="display-6 fw-bold text-primary my-1" id="resultEmiVal">$1,261.28</div>
+                    </div>
+                    <div class="col-6 border-end">
+                        <div class="small text-muted" style="font-size: 0.72rem;">TOTAL INTEREST</div>
+                        <div class="fw-bold text-danger fs-5" id="resultInterestVal">$304,061.64</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small text-muted" style="font-size: 0.72rem;">TOTAL REPAYMENT</div>
+                        <div class="fw-bold text-dark fs-5" id="resultTotalVal">$454,061.64</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart.js Doughnut Breakdown -->
+            <div style="position: relative; height: 180px;">
+                <canvas id="emiDoughnutChartCanvas"></canvas>
+            </div>
+
+            <div class="d-flex justify-content-center gap-4 mt-2">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width: 12px; height: 12px; background-color: #2563EB; border-radius: 3px; display: inline-block;"></span>
+                    <span class="small fw-semibold text-secondary">Principal Amount</span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width: 12px; height: 12px; background-color: #F59E0B; border-radius: 3px; display: inline-block;"></span>
+                    <span class="small fw-semibold text-secondary">Total Interest Burden</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Section 2: Loan Eligibility Estimator (FOIR Model) -->
+<div class="content-card">
+    <div class="card-header-clean">
+        <h5><i class="bi bi-wallet2"></i> Customer Loan Borrowing Capacity Estimator (FOIR Model)</h5>
+        <span class="badge bg-light text-secondary border">50% Max Debt-to-Income Standard</span>
+    </div>
+
+    <div class="row g-4 align-items-center">
+        <div class="col-12 col-lg-6">
+            <p class="text-muted small mb-3">
+                Commercial underwriters assess borrowing eligibility using the <b>Fixed Obligation to Income Ratio (FOIR)</b>. Generally, total monthly installments across all liabilities must not exceed 50% of verifiable monthly earnings.
+            </p>
+
+            <div class="row g-3">
+                <div class="col-12 col-sm-6">
+                    <label for="eligIncome" class="form-label form-label-custom">Net Monthly Income ($) <span class="text-danger">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">$</span>
+                        <input type="number" class="form-control form-control-custom" id="eligIncome" value="6500" min="500" step="100" oninput="runEligibilityEstimate();">
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                    <label for="eligExistingEmi" class="form-label form-label-custom">Existing Monthly EMIs ($)</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-light">$</span>
+                        <input type="number" class="form-control form-control-custom" id="eligExistingEmi" value="500" min="0" step="50" oninput="runEligibilityEstimate();">
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                    <label for="eligRate" class="form-label form-label-custom">Benchmark Interest Rate (%)</label>
+                    <div class="input-group">
+                        <input type="number" class="form-control form-control-custom" id="eligRate" value="9.5" min="1" max="25" step="0.1" oninput="runEligibilityEstimate();">
+                        <span class="input-group-text bg-light">%</span>
+                    </div>
+                </div>
+
+                <div class="col-12 col-sm-6">
+                    <label for="eligTenure" class="form-label form-label-custom">Proposed Tenure</label>
+                    <select class="form-select form-select-custom" id="eligTenure" onchange="runEligibilityEstimate();">
+                        <option value="360" selected>360 Months (30 Yrs)</option>
+                        <option value="240">240 Months (20 Yrs)</option>
+                        <option value="180">180 Months (15 Yrs)</option>
+                        <option value="120">120 Months (10 Yrs)</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-6">
+            <div class="p-4 bg-primary text-white rounded-3 shadow-sm text-center">
+                <div class="small text-uppercase text-white-50 fw-bold tracking-wide">Estimated Maximum Eligible Loan</div>
+                <div class="display-5 fw-extrabold my-2 text-white" id="eligLoanResult">$327,080</div>
+                <p class="small text-white-50 mb-3">
+                    Based on available monthly debt capacity of <strong class="text-white" id="eligMonthlyCapacity">$2,750 / mo</strong> (50% FOIR limit).
+                </p>
+                <a href="{{ url_for('predict') }}" class="btn btn-light text-primary fw-bold btn-sm px-3">
+                    <i class="bi bi-shield-check me-1"></i> Proceed to Loan Prediction
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let emiDoughnutChart = null;
+
+function updateTenureDisplay(months) {
+    const yrs = (months / 12).toFixed(1);
+    document.getElementById('tenureDisplay').textContent = `${months} Mo (${yrs} Yrs)`;
+}
+
+function runEligibilityEstimate() {
+    const income = parseFloat(document.getElementById('eligIncome').value) || 0;
+    const existing = parseFloat(document.getElementById('eligExistingEmi').value) || 0;
+    const rate = parseFloat(document.getElementById('eligRate').value) || 9.5;
+    const n = parseInt(document.getElementById('eligTenure').value) || 360;
+
+    const maxAllowableEmi = income * 0.50;
+    const availableEmi = maxAllowableEmi - existing;
+
+    const resultEl = document.getElementById('eligLoanResult');
+    const capEl = document.getElementById('eligMonthlyCapacity');
+
+    if (availableEmi <= 0) {
+        resultEl.textContent = '$0';
+        capEl.textContent = '$0 / mo (Debt limit reached)';
+        return;
+    }
+
+    const r = (rate / 100.0) / 12.0;
+    const factor = Math.pow(1 + r, n);
+    const eligiblePrincipal = availableEmi * ((factor - 1) / (r * factor));
+
+    resultEl.textContent = '$' + Math.round(eligiblePrincipal).toLocaleString();
+    capEl.textContent = '$' + Math.round(availableEmi).toLocaleString() + ' / mo';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Chart.js Doughnut
+    const canvas = document.getElementById('emiDoughnutChartCanvas');
+    if (canvas) {
+        window.emiDoughnutChart = new Chart(canvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Principal', 'Interest'],
+                datasets: [{
+                    data: [150000, 304061],
+                    backgroundColor: ['#2563EB', '#F59E0B'],
+                    borderWidth: 0,
+                    hoverOffset: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+
+    runEmiCalculation();
+    runEligibilityEstimate();
+});
+</script>
+{% endblock %}
+

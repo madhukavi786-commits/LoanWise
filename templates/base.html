@@ -14,7 +14,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <!-- Custom CSS -->
+    <!-- Custom FinTech CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     
     <!-- Chart.js -->
@@ -23,7 +23,7 @@
 <body>
 
 <div class="app-wrapper">
-    <!-- Sidebar -->
+    <!-- Collapsible Sidebar -->
     <aside class="app-sidebar" id="appSidebar">
         <div class="sidebar-header">
             <a href="{{ url_for('dashboard') }}" class="brand-logo">
@@ -32,27 +32,35 @@
                 </div>
                 <div class="brand-text">
                     <h4>LoanWise</h4>
-                    <span>AI Credit Engine</span>
+                    <span>FinTech AI Underwriting</span>
                 </div>
             </a>
         </div>
 
         <div class="sidebar-menu">
-            <div class="menu-category">Core Operations</div>
+            <div class="menu-category">Operations</div>
             <a href="{{ url_for('dashboard') }}" class="sidebar-link {% if request.endpoint == 'dashboard' %}active{% endif %}">
                 <i class="bi bi-grid-1x2-fill"></i>
                 <span>Dashboard</span>
             </a>
             <a href="{{ url_for('predict') }}" class="sidebar-link {% if request.endpoint == 'predict' %}active{% endif %}">
                 <i class="bi bi-plus-circle-fill"></i>
-                <span>New Prediction</span>
+                <span>New Loan Prediction</span>
+            </a>
+            <a href="{{ url_for('emi_calculator_route') }}" class="sidebar-link {% if request.endpoint == 'emi_calculator_route' %}active{% endif %}">
+                <i class="bi bi-calculator-fill"></i>
+                <span>EMI Calculator</span>
             </a>
             <a href="{{ url_for('history') }}" class="sidebar-link {% if request.endpoint in ['history', 'prediction_result'] %}active{% endif %}">
                 <i class="bi bi-clock-history"></i>
-                <span>Prediction History</span>
+                <span>Application History</span>
             </a>
 
-            <div class="menu-category">Model Intelligence</div>
+            <div class="menu-category">Intelligence &amp; Risk</div>
+            <a href="{{ url_for('risk_analytics') }}" class="sidebar-link {% if request.endpoint == 'risk_analytics' %}active{% endif %}">
+                <i class="bi bi-pie-chart-fill"></i>
+                <span>Risk Analytics</span>
+            </a>
             <a href="{{ url_for('performance') }}" class="sidebar-link {% if request.endpoint == 'performance' %}active{% endif %}">
                 <i class="bi bi-graph-up-arrow"></i>
                 <span>Model Performance</span>
@@ -61,6 +69,27 @@
                 <i class="bi bi-lightbulb-fill"></i>
                 <span>Model Insights</span>
             </a>
+
+            <div class="menu-category">Account</div>
+            {% if session.get('user_id') %}
+                <a href="{{ url_for('user_profile') }}" class="sidebar-link {% if request.endpoint == 'user_profile' %}active{% endif %}">
+                    <i class="bi bi-person-circle"></i>
+                    <span>My Profile</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="sidebar-link text-danger-subtle">
+                    <i class="bi bi-box-arrow-right text-danger"></i>
+                    <span class="text-danger">Logout</span>
+                </a>
+            {% else %}
+                <a href="{{ url_for('login') }}" class="sidebar-link {% if request.endpoint == 'login' %}active{% endif %}">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    <span>Sign In</span>
+                </a>
+                <a href="{{ url_for('register') }}" class="sidebar-link {% if request.endpoint == 'register' %}active{% endif %}">
+                    <i class="bi bi-person-plus-fill"></i>
+                    <span>Register</span>
+                </a>
+            {% endif %}
         </div>
 
         <div class="sidebar-footer">
@@ -69,14 +98,14 @@
                     <span class="status-dot"></span>
                     <strong class="text-white">ML Model</strong>
                 </div>
-                <span class="badge bg-primary text-white" style="font-size: 0.72rem;">v1.0 Ready</span>
+                <span class="badge bg-primary text-white" style="font-size: 0.72rem;">v2.0 Active</span>
             </div>
         </div>
     </aside>
 
-    <!-- Main Workspace -->
+    <!-- Main Content Workspace -->
     <div class="app-main">
-        <!-- Topbar -->
+        <!-- Top Navigation Bar -->
         <header class="app-topbar">
             <div class="d-flex align-items-center gap-3">
                 <button class="btn btn-sm btn-outline-secondary d-lg-none" id="sidebarToggleBtn" aria-label="Toggle Navigation">
@@ -84,15 +113,38 @@
                 </button>
                 <div class="topbar-title">
                     <h1>{% block page_title %}Dashboard Overview{% endblock %}</h1>
-                    <p>{% block page_subtitle %}Predictive customer loan evaluation & underwriting metrics{% endblock %}</p>
+                    <p>{% block page_subtitle %}Predictive customer loan evaluation &amp; underwriting metrics{% endblock %}</p>
                 </div>
             </div>
 
             <div class="topbar-actions">
-                <a href="{{ url_for('predict') }}" class="btn btn-primary-custom btn-sm">
-                    <i class="bi bi-plus-lg"></i>
-                    <span>New Application</span>
-                </a>
+                {% if session.get('user_id') %}
+                    <a href="{{ url_for('predict') }}" class="btn btn-primary-custom btn-sm d-none d-sm-inline-flex">
+                        <i class="bi bi-plus-lg"></i>
+                        <span>New Application</span>
+                    </a>
+                    
+                    <a href="{{ url_for('user_profile') }}" class="user-profile-pill">
+                        <div class="user-avatar-circle">
+                            {{ session.get('full_name', 'U')[0]|upper }}
+                        </div>
+                        <div class="d-none d-md-block text-start">
+                            <div class="fw-bold lh-1" style="font-size: 0.82rem;">{{ session.get('full_name', 'User') }}</div>
+                            <span class="user-role-badge {% if session.get('role') == 'admin' %}badge-admin{% else %}badge-customer{% endif %}">
+                                {{ session.get('role', 'customer') }}
+                            </span>
+                        </div>
+                    </a>
+                {% else %}
+                    <a href="{{ url_for('login') }}" class="btn btn-secondary-custom btn-sm">
+                        <i class="bi bi-box-arrow-in-right"></i>
+                        <span>Login</span>
+                    </a>
+                    <a href="{{ url_for('register') }}" class="btn btn-primary-custom btn-sm">
+                        <i class="bi bi-person-plus"></i>
+                        <span>Register</span>
+                    </a>
+                {% endif %}
             </div>
         </header>
 
@@ -106,6 +158,8 @@
                                 <i class="bi bi-check-circle-fill fs-5"></i>
                             {% elif category == 'danger' %}
                                 <i class="bi bi-exclamation-triangle-fill fs-5"></i>
+                            {% elif category == 'warning' %}
+                                <i class="bi bi-exclamation-circle-fill fs-5"></i>
                             {% else %}
                                 <i class="bi bi-info-circle-fill fs-5"></i>
                             {% endif %}
@@ -117,7 +171,7 @@
             {% endwith %}
         </div>
 
-        <!-- Main Page Container -->
+        <!-- Main Page View Container -->
         <main class="page-container">
             {% block content %}{% endblock %}
         </main>
@@ -125,10 +179,10 @@
         <!-- Footer -->
         <footer class="app-footer">
             <div>
-                <strong>LoanWise</strong> – Smart Customer Loan Approval Prediction System &copy; {{ current_year }}
+                <strong>LoanWise</strong> &bull; Smart Customer Loan Approval Prediction System &copy; {{ current_year }}
             </div>
-            <div class="text-muted">
-                Engineered with Python, Flask &amp; Scikit-Learn Logistic Regression
+            <div class="text-muted d-none d-md-block">
+                Powered by Scikit-Learn Logistic Regression &bull; SQLite Architecture
             </div>
         </footer>
     </div>
@@ -141,4 +195,3 @@
 {% block scripts %}{% endblock %}
 </body>
 </html>
-

@@ -1,18 +1,47 @@
 {% extends 'base.html' %}
 
-{% block title %}Dashboard | LoanWise Predictive Underwriting{% endblock %}
-{% block page_title %}Underwriting Dashboard{% endblock %}
-{% block page_subtitle %}Real-time portfolio metrics, approval rates, and application logs{% endblock %}
+{% block title %}Dashboard | LoanWise FinTech Underwriting{% endblock %}
+{% block page_title %}Executive Underwriting Dashboard{% endblock %}
+{% block page_subtitle %}Real-time portfolio intelligence, automated credit conversions, and recent applications{% endblock %}
 
 {% block content %}
-<!-- Metrics Grid -->
-<div class="row g-4 mb-4">
+<!-- Welcome & Role Banner -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h5 class="fw-bold mb-0 text-dark">
+            Welcome back, {{ session.get('full_name', 'Underwriting Officer') }}!
+        </h5>
+        <span class="text-muted small">
+            {% if session.get('role') == 'admin' %}
+                <i class="bi bi-shield-check text-primary me-1"></i>Logged in with <strong>Administrator</strong> oversight privileges.
+            {% elif session.get('user_id') %}
+                <i class="bi bi-person text-primary me-1"></i>Logged in as <strong>Customer</strong>. Showing personal underwriting stats.
+            {% else %}
+                <i class="bi bi-info-circle text-muted me-1"></i>Viewing system demo mode. <a href="{{ url_for('login') }}" class="text-primary fw-bold text-decoration-none">Sign in</a> to save personalized applications.
+            {% endif %}
+        </span>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('emi_calculator_route') }}" class="btn btn-secondary-custom btn-sm">
+            <i class="bi bi-calculator"></i>
+            <span>EMI Calculator</span>
+        </a>
+        <a href="{{ url_for('predict') }}" class="btn btn-primary-custom btn-sm">
+            <i class="bi bi-plus-lg"></i>
+            <span>New Prediction</span>
+        </a>
+    </div>
+</div>
+
+<!-- Metrics KPI Grid -->
+<div class="row g-3 mb-4">
     <div class="col-12 col-sm-6 col-xl-3">
         <div class="stat-card">
             <div class="d-flex justify-content-between align-items-start">
                 <div>
                     <div class="stat-label">Total Applications</div>
-                    <div class="stat-value">{{ stats.total_applications }}</div>
+                    <div class="stat-value text-dark">{{ stats.total_applications }}</div>
                 </div>
                 <div class="stat-icon primary">
                     <i class="bi bi-file-earmark-text"></i>
@@ -53,7 +82,7 @@
                 </div>
             </div>
             <div class="mt-3 text-muted small">
-                <span class="badge bg-danger-subtle text-danger">High-risk threshold</span>
+                <span class="badge bg-danger-subtle text-danger">Risk threshold flag</span>
             </div>
         </div>
     </div>
@@ -66,7 +95,7 @@
                     <div class="stat-value text-primary">{{ stats.approval_rate }}%</div>
                 </div>
                 <div class="stat-icon primary">
-                    <i class="bi bi-pie-chart"></i>
+                    <i class="bi bi-pie-chart-fill"></i>
                 </div>
             </div>
             <div class="mt-3 text-muted small">
@@ -75,30 +104,30 @@
                 {% else %}
                     No submissions recorded yet
                 {% endif %}
-            </div>
+            </div>c
         </div>
     </div>
 </div>
 
 <!-- Charts Section -->
 <div class="row g-4 mb-4">
-    <!-- Doughnut Chart -->
+    <!-- Doughnut Chart: Ratio -->
     <div class="col-12 col-lg-5">
         <div class="content-card h-100">
             <div class="card-header-clean">
                 <h5><i class="bi bi-pie-chart-fill"></i> Approval vs Rejection Ratio</h5>
             </div>
             {% if stats.total_applications > 0 %}
-                <div style="position: relative; height: 260px;">
+                <div style="position: relative; height: 250px;">
                     <canvas id="approvalDoughnutChart"></canvas>
                 </div>
                 <div class="d-flex justify-content-center gap-4 mt-3">
                     <div class="d-flex align-items-center gap-2">
-                        <span style="width: 12px; height: 12px; background-color: #10b981; border-radius: 3px; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; background-color: #16A34A; border-radius: 3px; display: inline-block;"></span>
                         <span class="small fw-semibold text-secondary">Approved ({{ stats.total_approved }})</span>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span style="width: 12px; height: 12px; background-color: #f43f5e; border-radius: 3px; display: inline-block;"></span>
+                        <span style="width: 12px; height: 12px; background-color: #DC2626; border-radius: 3px; display: inline-block;"></span>
                         <span class="small fw-semibold text-secondary">Rejected ({{ stats.total_rejected }})</span>
                     </div>
                 </div>
@@ -112,15 +141,15 @@
         </div>
     </div>
 
-    <!-- Application Activity Chart -->
+    <!-- Activity Bar Chart -->
     <div class="col-12 col-lg-7">
         <div class="content-card h-100">
             <div class="card-header-clean">
                 <h5><i class="bi bi-bar-chart-line-fill"></i> Application Activity Trend</h5>
-                <span class="badge bg-light text-secondary border">Recent Submissions</span>
+                <span class="badge bg-light text-secondary border">Recent Volume</span>
             </div>
             {% if stats.total_applications > 0 %}
-                <div style="position: relative; height: 270px;">
+                <div style="position: relative; height: 260px;">
                     <canvas id="activityBarChart"></canvas>
                 </div>
             {% else %}
@@ -137,9 +166,9 @@
 <!-- Recent Predictions Table -->
 <div class="content-card">
     <div class="card-header-clean">
-        <h5><i class="bi bi-clock-history"></i> Recent Loan Applications</h5>
+        <h5><i class="bi bi-clock-history"></i> Recent Underwriting Applications</h5>
         <div class="d-flex gap-2">
-            {% if stats.total_applications == 0 %}
+            {% if session.get('role') == 'admin' or stats.total_applications == 0 %}
                 <form action="{{ url_for('seed_demo_data') }}" method="POST" style="display: inline;">
                     <button type="submit" class="btn btn-outline-primary btn-sm">
                         <i class="bi bi-magic me-1"></i> Seed Demo Data
@@ -166,7 +195,7 @@
                         <th>Property Area</th>
                         <th>Prediction</th>
                         <th>Confidence</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -182,7 +211,7 @@
                             <td>
                                 <div>${{ "{:,.0f}".format(p.applicant_income) }}</div>
                                 {% if p.coapplicant_income > 0 %}
-                                    <small class="text-muted">+${{ "{:,.0f}".format(p.coapplicant_income) }} co-app</small>
+                                    <small class="text-muted">+${{ "{:,.0f}".format(p.coapplicant_income) }}</small>
                                 {% endif %}
                             </td>
                             <td>
@@ -191,9 +220,9 @@
                             </td>
                             <td>
                                 {% if p.credit_history == 1.0 %}
-                                    <span class="badge-credit-good"><i class="bi bi-check-circle-fill me-1"></i>Meets Guidelines</span>
+                                    <span class="badge-credit-good"><i class="bi bi-check-circle-fill me-1"></i>1.0 Meets Guidelines</span>
                                 {% else %}
-                                    <span class="badge-credit-bad"><i class="bi bi-x-circle-fill me-1"></i>Unfavorable</span>
+                                    <span class="badge-credit-bad"><i class="bi bi-x-circle-fill me-1"></i>0.0 Adverse</span>
                                 {% endif %}
                             </td>
                             <td>{{ p.property_area }}</td>
@@ -207,16 +236,21 @@
                             <td>
                                 <div class="d-flex align-items-center gap-2">
                                     <span class="small fw-semibold">{{ (p.probability * 100)|round(1) }}%</span>
-                                    <div class="progress flex-grow-1" style="height: 6px; width: 60px;">
+                                    <div class="progress flex-grow-1" style="height: 6px; width: 55px;">
                                         <div class="progress-bar {% if p.prediction == 1 %}bg-success{% else %}bg-danger{% endif %}"
                                              style="width: {{ (p.probability * 100)|round }}%;"></div>
                                     </div>
                                 </div>
                             </td>
                             <td>
-                                <a href="{{ url_for('prediction_result', application_id=p.application_id) }}" class="btn btn-sm btn-outline-secondary py-1 px-2" title="View Full Report">
-                                    <i class="bi bi-eye"></i>
-                                </a>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('prediction_result', application_id=p.application_id) }}" class="btn btn-outline-secondary py-1 px-2" title="View Full Report">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a href="{{ url_for('download_report', application_id=p.application_id) }}" class="btn btn-outline-danger py-1 px-2" title="Download PDF Report">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     {% endfor %}
@@ -226,10 +260,10 @@
     {% else %}
         <!-- Empty State When Zero Records Exist -->
         <div class="empty-state-box">
-            <i class="bi bi-inbox"></i>
+            <i class="bi bi-inbox text-muted"></i>
             <h5>No Loan Applications Processed Yet</h5>
             <p>
-                The system database is currently empty. Run your first customer prediction or seed demonstration records to explore interactive charts and insights.
+                The audit database is currently empty. Run your first customer prediction or seed demonstration records to explore interactive charts and insights.
             </p>
             <div class="d-flex justify-content-center gap-2">
                 <a href="{{ url_for('predict') }}" class="btn btn-primary-custom">
@@ -261,7 +295,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 labels: ['Approved', 'Rejected'],
                 datasets: [{
                     data: [{{ stats.total_approved }}, {{ stats.total_rejected }}],
-                    backgroundColor: ['#10b981', '#f43f5e'],
+                    backgroundColor: ['#16A34A', '#DC2626'],
                     borderWidth: 0,
                     hoverOffset: 6
                 }]
@@ -292,14 +326,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     {
                         label: 'Approved',
                         data: approvedData.length > 0 ? approvedData : [{{ stats.total_approved }}],
-                        backgroundColor: '#10b981',
-                        borderRadius: 6
+                        backgroundColor: '#16A34A',
+                        borderRadius: 4
                     },
                     {
                         label: 'Rejected',
                         data: rejectedData.length > 0 ? rejectedData : [{{ stats.total_rejected }}],
-                        backgroundColor: '#f43f5e',
-                        borderRadius: 6
+                        backgroundColor: '#DC2626',
+                        borderRadius: 4
                     }
                 ]
             },
@@ -326,4 +360,3 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 {% endif %}
 {% endblock %}
-

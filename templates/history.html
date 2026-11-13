@@ -1,43 +1,58 @@
 {% extends 'base.html' %}
 
-{% block title %}Prediction History | LoanWise{% endblock %}
-{% block page_title %}Application Records &amp; History{% endblock %}
-{% block page_subtitle %}Audit trail of all processed customer loan evaluations with SQLite persistence{% endblock %}
+{% block title %}Application Records &amp; History | LoanWise{% endblock %}
+{% block page_title %}Application Records &amp; Audit Trail{% endblock %}
+{% block page_subtitle %}Search, filter, inspect, and export stored customer underwriting assessments{% endblock %}
 
 {% block content %}
 <div class="content-card">
-    <!-- Top Filter & Search Bar -->
+    <!-- Filter, Search, Sort & Action Controls -->
     <div class="row g-3 align-items-center justify-content-between mb-4">
-        <div class="col-12 col-md-8">
+        <div class="col-12 col-xl-9">
             <form action="{{ url_for('history') }}" method="GET" class="row g-2 align-items-center">
-                <div class="col-12 col-sm-6">
+                <!-- Search input -->
+                <div class="col-12 col-md-4">
                     <div class="input-group">
                         <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-search"></i></span>
                         <input type="text" name="search" class="form-control form-control-custom border-start-0"
-                               placeholder="Search ID, Applicant, Area..." value="{{ search_query }}">
+                               placeholder="Search ID, Name, Area..." value="{{ search_query }}">
                     </div>
                 </div>
 
-                <div class="col-6 col-sm-4">
+                <!-- Status Filter -->
+                <div class="col-6 col-md-3">
                     <select name="status" class="form-select form-select-custom" onchange="this.form.submit()">
-                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Statuses</option>
+                        <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Outcomes</option>
                         <option value="Approved" {% if status_filter == 'Approved' %}selected{% endif %}>Approved Only</option>
                         <option value="Rejected" {% if status_filter == 'Rejected' %}selected{% endif %}>Rejected Only</option>
                     </select>
                 </div>
 
-                <div class="col-6 col-sm-2">
-                    <button type="submit" class="btn btn-secondary-custom w-100">Filter</button>
+                <!-- Sort Order (Newest / Oldest) -->
+                <div class="col-6 col-md-3">
+                    <select name="sort" class="form-select form-select-custom" onchange="this.form.submit()">
+                        <option value="desc" {% if sort_order == 'desc' %}selected{% endif %}>Sort: Newest First</option>
+                        <option value="asc" {% if sort_order == 'asc' %}selected{% endif %}>Sort: Oldest First</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-2">
+                    <button type="submit" class="btn btn-secondary-custom w-100 justify-content-center">
+                        <i class="bi bi-funnel"></i>
+                        <span>Apply</span>
+                    </button>
                 </div>
             </form>
         </div>
 
-        <div class="col-12 col-md-4 d-flex justify-content-md-end gap-2">
-            <a href="{{ url_for('export_history_route') }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1">
-                <i class="bi bi-file-earmark-spreadsheet"></i>
+        <!-- Export CSV & Clear Actions -->
+        <div class="col-12 col-xl-3 d-flex justify-content-xl-end gap-2">
+            <a href="{{ url_for('export_history_route') }}" class="btn btn-outline-success btn-sm d-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-file-earmark-spreadsheet-fill"></i>
                 <span>Export CSV</span>
             </a>
-            {% if predictions and predictions|length > 0 %}
+
+            {% if session.get('role') == 'admin' and predictions and predictions|length > 0 %}
                 <button type="button" class="btn btn-outline-danger btn-sm d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#clearModal">
                     <i class="bi bi-trash3"></i>
                     <span>Clear All</span>
@@ -46,19 +61,30 @@
         </div>
     </div>
 
-    <!-- Active Filter Badge -->
-    {% if search_query or (status_filter and status_filter != 'all') %}
-        <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="small text-muted">Active Filters:</span>
+    <!-- Active Filter Badges & Record Count -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 pb-2 border-bottom">
+        <div class="d-flex align-items-center gap-2">
+            <span class="small text-muted">Showing <strong>{{ total_records }}</strong> record(s)</span>
             {% if search_query %}
                 <span class="badge bg-primary-subtle text-primary border">Search: "{{ search_query }}"</span>
             {% endif %}
             {% if status_filter and status_filter != 'all' %}
                 <span class="badge bg-info-subtle text-info border">Status: {{ status_filter }}</span>
             {% endif %}
-            <a href="{{ url_for('history') }}" class="small text-danger ms-2 text-decoration-none">Reset Filter</a>
+            {% if sort_order == 'asc' %}
+                <span class="badge bg-light text-secondary border">Oldest First</span>
+            {% endif %}
+            {% if search_query or (status_filter and status_filter != 'all') or sort_order == 'asc' %}
+                <a href="{{ url_for('history') }}" class="small text-danger ms-2 text-decoration-none">Reset Filters</a>
+            {% endif %}
         </div>
-    {% endif %}
+
+        {% if session.get('role') != 'admin' %}
+            <span class="small text-muted"><i class="bi bi-person-lock me-1"></i>Showing your personal application submissions</span>
+        {% else %}
+            <span class="small text-muted"><i class="bi bi-shield-check text-primary me-1"></i>Administrator mode: Viewing all organization records</span>
+        {% endif %}
+    </div>
 
     <!-- Prediction History Table -->
     {% if predictions and predictions|length > 0 %}
@@ -72,9 +98,9 @@
                         <th>Income ($)</th>
                         <th>Loan ($K)</th>
                         <th>Credit History</th>
-                        <th>Area</th>
-                        <th>Status</th>
-                        <th>Probability</th>
+                        <th>Property Area</th>
+                        <th>Prediction</th>
+                        <th>Confidence</th>
                         <th class="text-end">Actions</th>
                     </tr>
                 </thead>
@@ -88,15 +114,15 @@
                             </td>
                             <td>
                                 <div class="fw-semibold">{{ p.applicant_name }}</div>
-                                <small class="text-muted">{{ p.education }}</small>
+                                <small class="text-muted">{{ p.education }} &bull; {{ p.gender }}</small>
                             </td>
                             <td class="text-muted small">
-                                {{ p.created_at }}
+                                {{ p.created_at[:16] }}
                             </td>
                             <td>
                                 <div>${{ "{:,.0f}".format(p.applicant_income) }}</div>
                                 {% if p.coapplicant_income > 0 %}
-                                    <small class="text-muted">+${{ "{:,.0f}".format(p.coapplicant_income) }} co-app</small>
+                                    <small class="text-muted">+${{ "{:,.0f}".format(p.coapplicant_income) }}</small>
                                 {% endif %}
                             </td>
                             <td>
@@ -107,7 +133,7 @@
                                 {% if p.credit_history == 1.0 %}
                                     <span class="badge-credit-good">Good (1.0)</span>
                                 {% else %}
-                                    <span class="badge-credit-bad">Poor (0.0)</span>
+                                    <span class="badge-credit-bad">Adverse (0.0)</span>
                                 {% endif %}
                             </td>
                             <td>{{ p.property_area }}</td>
@@ -124,14 +150,19 @@
                             </td>
                             <td class="text-end">
                                 <div class="btn-group btn-group-sm">
-                                    <a href="{{ url_for('prediction_result', application_id=p.application_id) }}" class="btn btn-outline-secondary" title="View Result Details">
+                                    <a href="{{ url_for('prediction_result', application_id=p.application_id) }}" class="btn btn-outline-secondary" title="View Full Decision Report">
                                         <i class="bi bi-eye"></i>
                                     </a>
-                                    <form action="{{ url_for('delete_prediction_route', application_id=p.application_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Delete record {{ p.application_id }}?');">
-                                        <button type="submit" class="btn btn-outline-danger" title="Delete Record">
-                                            <i class="bi bi-trash"></i>
-                                        </button>
-                                    </form>
+                                    <a href="{{ url_for('download_report', application_id=p.application_id) }}" class="btn btn-outline-danger" title="Download Official PDF Report">
+                                        <i class="bi bi-file-earmark-pdf"></i>
+                                    </a>
+                                    {% if session.get('role') == 'admin' %}
+                                        <form action="{{ url_for('delete_prediction_route', application_id=p.application_id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Permanently delete record {{ p.application_id }}?');">
+                                            <button type="submit" class="btn btn-outline-danger" title="Delete Record">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </form>
+                                    {% endif %}
                                 </div>
                             </td>
                         </tr>
@@ -146,9 +177,9 @@
             <h5>No Records Matching Criteria</h5>
             <p>
                 {% if search_query or (status_filter and status_filter != 'all') %}
-                    No applications matched your search or status filter. Try resetting your search terms.
+                    No applications matched your active search or outcome filter. Try clearing the filter parameters to view the complete register.
                 {% else %}
-                    No predictions are stored in the database. Process a customer loan form to see records logged here.
+                    No prediction records are logged in the database yet. Submit a customer loan application form to start building your audit log.
                 {% endif %}
             </p>
             <div>
@@ -160,7 +191,7 @@
                 {% else %}
                     <a href="{{ url_for('predict') }}" class="btn btn-primary-custom">
                         <i class="bi bi-plus-lg"></i>
-                        <span>Create First Prediction</span>
+                        <span>Evaluate First Loan</span>
                     </a>
                 {% endif %}
             </div>
@@ -168,7 +199,8 @@
     {% endif %}
 </div>
 
-<!-- Clear History Confirmation Modal -->
+<!-- Clear History Confirmation Modal (Admin Only) -->
+{% if session.get('role') == 'admin' %}
 <div class="modal fade" id="clearModal" tabindex="-1" aria-labelledby="clearModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -179,7 +211,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body py-2">
-                Are you sure you want to delete all stored loan prediction records from the SQLite database? This action cannot be undone.
+                Are you sure you want to delete all stored loan prediction records from the database? This action cannot be reversed.
             </div>
             <div class="modal-footer border-top-0">
                 <button type="button" class="btn btn-secondary-custom" data-bs-dismiss="modal">Cancel</button>
@@ -190,5 +222,5 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
-
